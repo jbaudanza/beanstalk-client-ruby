@@ -273,6 +273,10 @@ module Beanstalk
       @connections.size
     end
 
+    def reconnect
+      connect if @connections.empty?
+    end
+
     def open_connections()
       @connections.values()
     end
@@ -405,22 +409,22 @@ module Beanstalk
       # Don't reconnect -- we're not interested in this server
       retry
     rescue EOFError, Errno::ECONNRESET, Errno::EPIPE
-      connect()
+      reconnect()
       retry
     end
 
     def send_to_each_conn_first_res(*args)
-      connect()
+      reconnect
       retry_wrap{open_connections.inject(nil) {|r,c| r or call_wrap(c, *args)}}
     end
 
     def send_to_rand_conn(*args, &block)
-      connect()
+      reconnect
       retry_wrap{call_wrap(pick_connection, *args, &block)}
     end
 
     def send_to_all_conns(*args)
-      connect()
+      reconnect
       retry_wrap{compact_hash(map_hash(@connections){|c| call_wrap(c, *args)})}
     end
 
